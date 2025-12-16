@@ -646,18 +646,14 @@ public class SetupDao {
         DatabaseConnectionManager.DatabaseResources resources = null;
 
         try {
-            // ✅ OBTENER CARAS USADAS UNA SOLA VEZ ANTES DEL BUCLE
-           // ArrayList<Integer> carasUsadas = getCarasUsadas();
-            
             String sql = "SELECT sur.*,\n"
                     + "p.descripcion,\n"
                     + "pf.codigo familia_descripcion,\n"
                     + "pf.id  familia_id,\n"
-                    + "lp.precio\n"
+                    + "p.precio\n"
                     + "FROM surtidores_detalles sur\n"
                     + "INNER JOIN productos p on p.id = sur.productos_id \n"
                     + "INNER JOIN productos_familias pf on p.familias = pf.id \n"
-                    + "inner join lt_productos lp on pf.id = lp.familia_id\n"
                     + "where sur.estado_publico = 100\n "
                     + "AND pf.codigo NOT ILIKE '%GLP%' \n" 
                     + " order by manguera;";
@@ -711,8 +707,6 @@ public class SetupDao {
         DatabaseConnectionManager.DatabaseResources resources = null;
 
         try {
-            // ✅ OBTENER CARAS USADAS UNA SOLA VEZ ANTES DEL BUCLE
-           // ArrayList<Integer> carasUsadas = getCarasUsadas();
             
             String sql = "SELECT sur.*,\n"
                     + "p.descripcion,\n"

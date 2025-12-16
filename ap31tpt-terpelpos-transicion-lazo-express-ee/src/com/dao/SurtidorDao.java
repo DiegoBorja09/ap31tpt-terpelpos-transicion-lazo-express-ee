@@ -206,13 +206,10 @@ public class SurtidorDao {
                         + "fecha_servidor, fecha_creacion, fecha_uso, metodo_pago, medio_autorizacion, "
                         + "serial_dispositivo, conductor_nombre, cliente_nombre, vehiculo_odometro, trama, "
                         + "codigo_tercero, transaccion_sincronizada, promotor_id) "
-                        + "VALUES(?, ?, ?, ?, ?," // codigo, surtidor, cara, grado, proveedores_id,
-                        + "true, 'A', ?, null, ?, " // preventa, estado, documento_identificacion_cliente,
-                        // documento_identificacion_conductor, placa_vehiculo,
-                        + "null, 0, ?, ?, null," // precio_unidad, porcentaje_descuento_cliente, monto_maximo,
-                        // cantidad_maxima, usado,
-                        + "now(), now(), null, ?, ?, "// fecha_servidor, fecha_creacion, fecha_uso, metodo_pago,
-                        // medio_autorizacion,
+                        + "VALUES(?, ?, ?, ?, ?," 
+                        + "true, 'A', ?, null, ?, " 
+                        + "?, 0, ?, ?, null," 
+                        + "now(), now(), null, ?, ?, "
                         + "?, null, ?, ?, ?::json,"
                         + "null, 'N', ?);";
                 ps = conexion.prepareStatement(sql);
@@ -250,6 +247,10 @@ public class SurtidorDao {
                 ps.setString(6, trama.get("documentoIdentificacionCliente").getAsString());
                 ps.setString(7, placa);
 
+                float precioUnidad = manguera.getProductoPrecio();
+                ps.setFloat(8, precioUnidad);
+                NovusUtils.printLn("[crearAutorizacionPorPlaca] Guardando precio_unidad: " + precioUnidad);
+
                 ventaMaxima = getVentaMaxima(manguera.getSurtidor());
                 NovusUtils.printLn("Manguera Surtidor ::::" + manguera.getSurtidor());
                 NovusUtils.printLn("Datos ::::" + ventaMaxima);
@@ -277,18 +278,18 @@ public class SurtidorDao {
                             cantidad = Math.round(cantidad * 10000.0) / 10000.0;
                             
                             // Guardar con monto=0 y cantidad=conversión (con 4 decimales máximo)
-                            ps.setInt(8, 0);
-                            ps.setDouble(9, cantidad); // Usar setDouble para mantener decimales (máximo 4)
+                            ps.setInt(9, 0); // monto_maximo (índice ajustado: antes 8, ahora 9)
+                            ps.setDouble(10, cantidad); // cantidad_maxima (índice ajustado: antes 9, ahora 10)
                             NovusUtils.printLn("[crearAutorizacionPorPlaca] Monto " + monto + " convertido a " + cantidad + " galones. Guardando MONTO: 0, CANTIDAD: " + cantidad);
                         } else {
                             NovusUtils.printLn("[crearAutorizacionPorPlaca] ERROR: Precio del producto es 0, usando lógica por defecto");
                             if (saldo >= ventaMaxima) {
                                 int cantidadMaxima = saldo / (int) manguera.getProductoPrecio();
-                                ps.setInt(8, 0);
-                                ps.setInt(9, cantidadMaxima);
-                            } else {
-                                ps.setInt(8, saldo);
                                 ps.setInt(9, 0);
+                                ps.setInt(10, cantidadMaxima);
+                            } else {
+                                ps.setInt(9, saldo);
+                                ps.setInt(10, 0);
                             }
                         }
                     } catch (NumberFormatException e) {
@@ -296,11 +297,11 @@ public class SurtidorDao {
                         NovusUtils.printLn("[crearAutorizacionPorPlaca] Error al convertir monto: " + montoManual);
                         if (saldo >= ventaMaxima) {
                             int cantidadMaxima = saldo / (int) manguera.getProductoPrecio();
-                            ps.setInt(8, 0);
-                            ps.setInt(9, cantidadMaxima);
-                        } else {
-                            ps.setInt(8, saldo);
                             ps.setInt(9, 0);
+                            ps.setInt(10, cantidadMaxima);
+                        } else {
+                            ps.setInt(9, saldo);
+                            ps.setInt(10, 0);
                         }
                     }
                 } else if (cantidadManual != null && !cantidadManual.trim().isEmpty()) {
@@ -320,37 +321,37 @@ public class SurtidorDao {
                         } else {
                             cantidadFinal = cantidad;
                         }
-                        ps.setInt(8, 0);
-                        ps.setDouble(9, cantidadFinal); // Usar setDouble para mantener decimales (máximo 4)
+                        ps.setInt(9, 0); // monto_maximo (índice ajustado: antes 8, ahora 9)
+                        ps.setDouble(10, cantidadFinal); // cantidad_maxima (índice ajustado: antes 9, ahora 10)
                         NovusUtils.printLn("[crearAutorizacionPorPlaca] Guardando CANTIDAD: " + cantidadFinal + " (ingresada: " + cantidad + ", monto equivalente: " + montoEquivalente + ", saldo disponible: " + saldo + ")");
                     } catch (NumberFormatException e) {
                         NovusUtils.printLn("[crearAutorizacionPorPlaca] Error al convertir cantidad: " + cantidadManual);
                         if (saldo >= ventaMaxima) {
                             int cantidadMaxima = saldo / (int) manguera.getProductoPrecio();
-                            ps.setInt(8, 0);
-                            ps.setInt(9, cantidadMaxima);
-                        } else {
-                            ps.setInt(8, saldo);
                             ps.setInt(9, 0);
+                            ps.setInt(10, cantidadMaxima);
+                        } else {
+                            ps.setInt(9, saldo);
+                            ps.setInt(10, 0);
                         }
                     }
                 } else {
                     if (saldo >= ventaMaxima) {
                         int cantidadMaxima = saldo / (int) manguera.getProductoPrecio();
-                        ps.setInt(8, 0);
-                        ps.setInt(9, cantidadMaxima);
+                        ps.setInt(9, 0); // monto_maximo (índice ajustado: antes 8, ahora 9)
+                        ps.setInt(10, cantidadMaxima); // cantidad_maxima (índice ajustado: antes 9, ahora 10)
                     } else {
-                        ps.setInt(8, saldo);
-                        ps.setInt(9, 0);
+                        ps.setInt(9, saldo); // monto_maximo (índice ajustado: antes 8, ahora 9)
+                        ps.setInt(10, 0); // cantidad_maxima (índice ajustado: antes 9, ahora 10)
                     }
                 }
-                ps.setInt(10, trama.has("es_comunidades") && trama.get("es_comunidades").getAsBoolean() ? 1 : MEDIO_PAGO);
-                ps.setString(11, trama.get("medioAutorizacion").getAsString());
-                ps.setString(12, trama.get("serialDispositivo").getAsString());
-                ps.setString(13, trama.get("nombreCliente").getAsString());
-                ps.setString(14, odometro);
-                ps.setString(15, trama.toString());
-                ps.setLong(16, persona.getId());
+                ps.setInt(11, trama.has("es_comunidades") && trama.get("es_comunidades").getAsBoolean() ? 1 : MEDIO_PAGO); // metodo_pago (índice ajustado: antes 10, ahora 11)
+                ps.setString(12, trama.get("medioAutorizacion").getAsString()); // medio_autorizacion (índice ajustado: antes 11, ahora 12)
+                ps.setString(13, trama.get("serialDispositivo").getAsString()); // serial_dispositivo (índice ajustado: antes 12, ahora 13)
+                ps.setString(14, trama.get("nombreCliente").getAsString()); // cliente_nombre (índice ajustado: antes 13, ahora 14)
+                ps.setString(15, odometro); // vehiculo_odometro (índice ajustado: antes 14, ahora 15)
+                ps.setString(16, trama.toString()); // trama (índice ajustado: antes 15, ahora 16)
+                ps.setLong(17, persona.getId()); // promotor_id (índice ajustado: antes 16, ahora 17)
                 ps.executeUpdate();
                 result = true;
             }
