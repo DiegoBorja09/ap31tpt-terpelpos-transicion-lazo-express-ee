@@ -1,0 +1,11 @@
+dist/*
+build/*
+out/*
+src/com/firefuel/.DS_Store
+.DS_Store
+logs/*
+nbproject/private/private.xml
+/nbproject/private
+/.vs
+/.idea/workspace.xml
+.idea/*

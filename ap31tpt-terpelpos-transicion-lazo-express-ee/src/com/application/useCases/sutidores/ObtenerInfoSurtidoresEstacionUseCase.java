@@ -1,0 +1,34 @@
+package com.application.useCases.sutidores;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+
+import com.application.core.BaseUseCases;
+import com.controllers.NovusUtils;
+import com.google.gson.JsonArray;
+import com.infrastructure.database.DatabaseNames;
+import com.infrastructure.database.JpaEntityManagerFactory;
+import com.infrastructure.repositories.SurtidorRepository;
+
+public class ObtenerInfoSurtidoresEstacionUseCase implements BaseUseCases<JsonArray> {
+    
+    private final EntityManagerFactory entityManagerFactory;
+
+    public ObtenerInfoSurtidoresEstacionUseCase() {
+        this.entityManagerFactory = JpaEntityManagerFactory.INSTANCE
+                .getEntityManagerFactory(DatabaseNames.LAZOEXPRESSCORE);
+    }
+    
+    @Override
+    public JsonArray execute() {
+        try {
+            EntityManager entityManager = entityManagerFactory.createEntityManager();
+            SurtidorRepository surtidorRepository = new SurtidorRepository(entityManager);
+            return surtidorRepository.obtenerInfoSurtidoresEstacion();
+            
+        } catch (Exception e) {
+            NovusUtils.printLn("Error en ObtenerInfoSurtidoresEstacionUseCase: " + e.getMessage());
+            return new JsonArray();
+        }
+    }
+} 

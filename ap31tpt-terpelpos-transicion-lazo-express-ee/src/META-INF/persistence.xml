@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="http://java.sun.com/xml/ns/persistence" version="2.0">
+  <persistence-unit name="dynamicPU" transaction-type="RESOURCE_LOCAL">
+    <class>com.domain.entities.Person</class>
+    <class>com.domain.entities.MovimientoEntity</class>
+    <class>com.domain.entities.WacherParametroEntity</class>
+    <class>com.domain.entities.JornadaEntity</class>
+    <class>com.domain.entities.TipoIdentificacionEntity</class>
+    <class>com.domain.entities.CtPerson</class>
+    <class>com.domain.entities.CtMovimientoEntity</class>
+    <class>com.domain.entities.CtWacherParametroEntity</class>
+    <class>com.domain.entities.CtMovimientoDetalleEntity</class>
+    <class>com.domain.entities.CtTblTransaccionProcesoEntity</class>
+    <class>com.domain.entities.GoPassEntity</class>
+    <class>com.domain.entities.BodegaEntity</class>
+    <class>com.domain.entities.ConsecutivoEntity</class>
+    <class>com.domain.entities.CtBodegaEntity</class>
+    <class>com.domain.entities.DatafonosEntity</class>
+    <class>com.domain.entities.DatafonosTransaccionEntiity</class>
+    <class>com.domain.entities.DispositivoEntity</class>
+    <class>com.domain.entities.EquipoEntity</class>
+    <class>com.domain.entities.GrupoEntidadEntity</class>
+    <class>com.domain.entities.HistorialRemisionEntity</class>
+    <class>com.domain.entities.ImpuestoEntity</class>
+    <class>com.domain.entities.LtHorarioEntity</class>
+    <class>com.domain.entities.PersonaEntity</class>
+    <class>com.domain.entities.RemisionProductoSapEntity</class>
+    <class>com.domain.entities.ProductoEntity</class>
+    <class>com.domain.entities.RemisionSapEntity</class>
+    <class>com.domain.entities.GrupoEntity</class>
+    <class>com.domain.entities.TipoIdentificacionDianEntity</class>
+    <class>com.domain.entities.TransmisionEntity</class>
+    <class>com.domain.entities.TransmisionRemisionEntity</class>
+    <class>com.domain.entities.UnidadEntity</class>
+    <class>com.domain.entities.EstadoSapEntity</class>
+    <class>com.domain.entities.CtMovimientosClienteEntity</class>
+    <class>com.domain.entities.CtMovimientoMedioDePagoEntity</class>
+    <class>com.domain.entities.Categoria</class>
+    <class>com.domain.entities.BodegaProductoEntity</class>
+    <class>com.domain.entities.MedioPagoEntity</class>
+    
+    <properties>
+      <property name="javax.persistence.jdbc.driver" value="org.postgresql.Driver"/>
+      <!-- La URL, usuario y contraseña se pasan dinámicamente desde el código -->
+      <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
+      <property name="hibernate.hbm2ddl.auto" value="validate"/>
+      <property name="hibernate.show_sql" value="true"/>
+    </properties>
+  </persistence-unit>
+</persistence>

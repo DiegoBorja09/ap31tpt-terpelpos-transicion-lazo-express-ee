@@ -1,0 +1,112 @@
+variables:
+  REPO_SINCRONIZACION: $(Pipeline.Workspace)/REPO-AP31TPT-TERPELPOS-SINCRONIZACION
+  REPO_ORIGIN: $(Pipeline.Workspace)/REPO-AP31TP-TERPEL-POS
+  BRANCH_1: release/evolutivo/14.3.10.0
+  BRANCH_2: release/correctivo/14.3.12
+  BRANCH_3: release/evolutivo-2/14.3.12
+  BRANCH_4: feature/correctivo/cdl/merge-12.2.5-to-14.3.12
+
+# Evita que este pipeline se active automáticamente por cambios en su propio repositorio
+trigger: none
+
+# Define los repositorios externos que el pipeline utilizará como recursos
+resources:
+  repositories:
+    - repository: ap31tp-terpel-pos-lazo-express-ee
+      type: git
+      name: AP31TP-TERPEL-POS/ap31tp-terpel-pos-lazo-express-ee # Ruta completa del repositorio fuente
+      ref: refs/heads/release/evolutivo/14.3.10.0  # Rama del repositorio que se utilizará
+      trigger:
+        branches:
+          include:
+            - release/evolutivo/14.3.10.0  # Activar pipeline cuando hay cambios en la rama "$(BRANCH_1)"
+            - release/correctivo/14.3.12  # Activar pipeline cuando hay cambios en la rama "$(BRANCH_2)"
+            - release/evolutivo-2/14.3.12 # Activar pipeline cuando hay cambios en la rama "$(BRANCH_3)"
+            - feature/correctivo/cdl/merge-12.2.5-to-14.3.12 # Activar pipeline cuando hay cambios en la rama "$(BRANCH_4)"
+
+pool: hosted-linux
+
+steps:
+    # Checkout del repositorio destino (AP31TPT-TERPELPOS-TRANSICION)
+  - checkout: self  # Reutiliza el alias "self" para trabajar sobre el repositorio destino
+    path: REPO-AP31TPT-TERPELPOS-SINCRONIZACION  # Directorio donde se descargará este repositorio
+    clean: true
+    persistCredentials: true
+
+  # Checkout del repositorio "$(BRANCH_1)" del proyecto fuente
+  - checkout: ap31tp-terpel-pos-lazo-express-ee # Alias definido en "resources"
+    path: REPO-AP31TP-TERPEL-POS  # Directorio donde se descargará este repositorio
+    clean: true
+    persistCredentials: true
+
+  - script: |
+      echo "Configurando identidad temporal para Git Sync Bot..."
+      git config --global user.email "sync-bot@organizacionterpel.com"
+      git config --global user.name "Sync Bot"
+    displayName: "Identidad Bot Pipeline"
+
+  - script: |
+      if [[ "$(Build.SourceBranch)" == "refs/heads/"$(BRANCH_1)"" ]]; then
+        echo "Sincronizando rama $(BRANCH_1)"
+        ORIGIN_BRANCH=$(BRANCH_1)
+        TARGET_BRANCH="supervision/$(BRANCH_1)"
+      elif [[ "$(Build.SourceBranch)" == "refs/heads/"$(BRANCH_2)"" ]]; then
+        echo "Sincronizando rama $(BRANCH_2)"
+        ORIGIN_BRANCH=$(BRANCH_2)
+        TARGET_BRANCH="supervision/$(BRANCH_2)"
+      elif [[ "$(Build.SourceBranch)" == "refs/heads/"$(BRANCH_3)"" ]]; then
+        echo "Sincronizando rama $(BRANCH_3)"
+        ORIGIN_BRANCH=$(BRANCH_3)
+        TARGET_BRANCH="supervision/$(BRANCH_3)"
+      elif [[ "$(Build.SourceBranch)" == "refs/heads/"$(BRANCH_4)"" ]]; then
+        echo "Sincronizando rama $(BRANCH_4)"
+        ORIGIN_BRANCH=$(BRANCH_4)
+        TARGET_BRANCH="supervision/$(BRANCH_4)"
+      else
+        echo "No se ha encontrado la rama esperada. Terminado el pipeline."
+        exit 1
+      fi
+
+      cd "$(REPO_ORIGIN)"
+      echo "Antes de convertir el clon a completo..."
+      git rev-parse --is-shallow-repository
+
+      echo "Haciendo unfetch --unshallow para obtener historial completo"
+      git fetch --unshallow || echo "Ya era un clon completo"
+
+      git fetch origin "$ORIGIN_BRANCH" # Obtener la última información del repositorio origen de la rama develop, evolutivo, correctivo o master (o la rama en su defecto)
+      git checkout "$ORIGIN_BRANCH"
+      git reset --hard origin/"$ORIGIN_BRANCH" # Sincronizar el estado local de develop, evolutivo, correctivo o master (o la rama en su defecto) con el remoto
+
+      echo "Verificando commits disponibles:"
+      git log --oneline -n 60
+
+      cd "$(REPO_SINCRONIZACION)" # Cambiar al directorio del repositorio de sincronización
+      echo "Directorio actual: $(pwd)"
+      echo "Sincronizando repositorio de destino..."
+      git fetch --all
+
+      if ! git ls-remote --exit-code --heads origin "$TARGET_BRANCH" &>/dev/null; then
+        echo "La rama de sincronización no existe. Creándola..."
+        git checkout -b "$TARGET_BRANCH" # Crear la rama de sincronización basada en develop, evolutivo, correctivo o master (o la rama en su defecto) si no existe
+        git push --set-upstream origin "$TARGET_BRANCH"
+      else
+        echo "La rama de sincronización ya existe. Sincronizando..."
+        git checkout "$TARGET_BRANCH" # Cambiar a la rama de sincronización
+        git reset --hard origin/"$TARGET_BRANCH" # Sincronizar con el remoto si ya existe
+      fi
+      
+      # Copia los archivos desde el repositorio origen de la rama develop, evolutivo, correctivo o master (o la rama en su defecto) al directorio actual de supervision
+      echo "Copiando archivos desde $(REPO_ORIGIN) a $(REPO_SINCRONIZACION)..."
+      cp -R "$(REPO_ORIGIN)"/* .
+      echo "Archivos copiados"
+      git add .
+      if ! git diff --cached --quiet; then # Si hay cambios, realizar un commit y enviar al remoto
+        echo "Se detectaron cambios. Realizando commit..."
+        git commit -m "Sincronización de cambios desde $ORIGIN_BRANCH"
+        git push --force origin "$TARGET_BRANCH"
+        echo "Cambios sincronizados."
+      else
+        echo "No se detectaron cambios. No se realizaran commits."
+      fi
+    displayName: "Script sincronización de ramas"
