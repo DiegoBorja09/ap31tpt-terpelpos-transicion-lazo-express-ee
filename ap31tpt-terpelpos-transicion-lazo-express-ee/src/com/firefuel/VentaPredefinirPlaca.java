@@ -67,6 +67,10 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
     boolean enVenta_1 = false;
     boolean esFlujoPlaca = false; // Indica si es el flujo de autorización por Placa
     
+    // Variables para guardar el estado del footer y restaurarlo después de validaciones
+    private String textoFooterAnterior = ""; // Guarda el texto del footer antes de ocultarlo por validaciones
+    private boolean saldoOcultoPorValidacion = false; // Indica si el saldo está oculto por una validación
+    
      Runnable handler = null;
 
     public VentaPredefinirPlaca(InfoViewController parent, boolean modal) {
@@ -339,7 +343,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
         pnl_principal.add(jLabel11);
         jLabel11.setBounds(590, 720, 180, 70);
 
-        jLabel5.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
+        jLabel5.setFont(new java.awt.Font("Arial", 0, 22)); // NOI18N - Tamaño uniforme para todos los mensajes del footer
         jLabel5.setForeground(new java.awt.Color(255, 255, 0));
         pnl_principal.add(jLabel5);
         jLabel5.setBounds(10, 700, 570, 100);
@@ -603,7 +607,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
         pnl_principal.add(jPanel2);
         jPanel2.setBounds(40, 90, 1190, 610);
 
-        jNotificacion.setFont(new java.awt.Font("Segoe UI", 1, 36)); // NOI18N
+        jNotificacion.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N - Tamaño reducido para validaciones
         jNotificacion.setForeground(new java.awt.Color(255, 255, 255));
         pnl_principal.add(jNotificacion);
         jNotificacion.setBounds(10, 720, 560, 60);
@@ -639,17 +643,13 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
   }//GEN-LAST:event_jKilometrajeActionPerformed
 
   private void jLabel4MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel4MouseReleased
-      NovusUtils.beep();
-      if (jLabel4.isEnabled()) {
-          crearAutorizacion();
-      }else {
-          if (HABILITAR_CONSULTA_SICOM) {
-              jLabel5.setText("Valide primero con SICOM");
-          } else {
-              jLabel5.setText("Realice la pre-autorizacion por Ibutton");
-              crearAutorizacion();
-          }
+      // Si el botón está deshabilitado, no hacer nada (no ejecutar ninguna acción)
+      if (!jLabel4.isEnabled()) {
+          return;
       }
+      
+      NovusUtils.beep();
+      crearAutorizacion();
   }//GEN-LAST:event_jLabel4MouseReleased
 
  
@@ -691,25 +691,133 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
       String galonaje = jGalonaje.getText().trim();
       
       if (placa.isEmpty()) {
+          jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
           jLabel5.setText("INGRESE LA PLACA");
           jPlaca.requestFocus();
           return;
       }
       
       if (odometro.isEmpty()) {
+          jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
           jLabel5.setText("INGRESE EL KILOMETRAJE");
           jKilometraje.requestFocus();
           return;
       }
       
       if (monto.isEmpty() && galonaje.isEmpty()) {
+          jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
           jLabel5.setText("INGRESE MONTO O GALONAJE");
           return;
       }
       
       if (!monto.isEmpty() && !galonaje.isEmpty()) {
+          jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
           jLabel5.setText("SOLO PUEDE INGRESAR MONTO O GALONAJE, NO AMBOS");
           return;
+      }
+      
+
+      if (!monto.isEmpty()) {
+          // Verificar que no comience con 0 (excepto si es solo "0")
+          if (monto.length() > 1 && monto.startsWith("0")) {
+              jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+              jLabel5.setText("MONTO INVÁLIDO");
+              jMonto.setText("");
+              jMonto.requestFocus();
+              // Limpiar mensajes de validación
+              jNotificacion.setText("");
+              jNotificacion.setVisible(false);
+              // Limpiar mensaje después de 3 segundos
+              Utils.setTimeout("", () -> {
+                  String textoActual = jLabel5.getText();
+                  if (textoActual != null && textoActual.equals("MONTO INVÁLIDO")) {
+                      jLabel5.setText("");
+                      jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                  }
+              }, 3000);
+              return;
+          }
+          
+          // Validación: monto debe ser mayor a 0
+          try {
+              double valorMonto = Double.parseDouble(monto);
+              if (valorMonto <= 0) {
+                  jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                  jLabel5.setText("MONTO INVÁLIDO");
+                  jMonto.setText("");
+                  jMonto.requestFocus();
+                  // Limpiar mensajes de validación
+                  jNotificacion.setText("");
+                  jNotificacion.setVisible(false);
+                  // Limpiar mensaje después de 3 segundos
+                  Utils.setTimeout("", () -> {
+                      String textoActual = jLabel5.getText();
+                      if (textoActual != null && textoActual.equals("MONTO INVÁLIDO")) {
+                          jLabel5.setText("");
+                          jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                      }
+                  }, 3000);
+                  return;
+              }
+          } catch (NumberFormatException e) {
+              jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+              jLabel5.setText("ERROR: MONTO INVÁLIDO");
+              jMonto.setText("");
+              jMonto.requestFocus();
+              return;
+          }
+      }
+      
+      // Validación: galonaje no puede comenzar con 0
+      if (!galonaje.isEmpty()) {
+          // Verificar que no comience con 0 (excepto si es solo "0")
+          if (galonaje.length() > 1 && galonaje.startsWith("0")) {
+              jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+              jLabel5.setText("GALONAJE INVÁLIDO");
+              jGalonaje.setText("");
+              jGalonaje.requestFocus();
+              // Limpiar mensajes de validación
+              jNotificacion.setText("");
+              jNotificacion.setVisible(false);
+              // Limpiar mensaje después de 3 segundos
+              Utils.setTimeout("", () -> {
+                  String textoActual = jLabel5.getText();
+                  if (textoActual != null && textoActual.equals("GALONAJE INVÁLIDO")) {
+                      jLabel5.setText("");
+                      jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                  }
+              }, 3000);
+              return;
+          }
+          
+          // Validación: galonaje debe ser mayor a 0
+          try {
+              double valorGalonaje = Double.parseDouble(galonaje);
+              if (valorGalonaje <= 0) {
+                  jLabel5.setFont(new java.awt.Font("Arial", 0, 22)); // Tamaño uniforme del footer
+                  jLabel5.setText("GALONAJE INVÁLIDO");
+                  jGalonaje.setText("");
+                  jGalonaje.requestFocus();
+                  // Limpiar mensajes de validación
+                  jNotificacion.setText("");
+                  jNotificacion.setVisible(false);
+                  // Limpiar mensaje después de 3 segundos
+                  Utils.setTimeout("", () -> {
+                      String textoActual = jLabel5.getText();
+                      if (textoActual != null && textoActual.equals("GALONAJE INVÁLIDO")) {
+                          jLabel5.setText("");
+                          jLabel5.setFont(new java.awt.Font("Arial", 0, 22)); // Restaurar tamaño original
+                      }
+                  }, 3000);
+                  return;
+              }
+          } catch (NumberFormatException e) {
+              jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+              jLabel5.setText("ERROR: GALONAJE INVÁLIDO");
+              jGalonaje.setText("");
+              jGalonaje.requestFocus();
+              return;
+          }
       }
       
       mostrarPanelMensaje("CONSULTANDO AUTORIZACIÓN", "/com/firefuel/resources/loader_fac.gif", true);
@@ -742,7 +850,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                       NovusUtils.printLn("[VentaPredefinirPlaca] Error al convertir monto: " + montoFinal);
                       SwingUtilities.invokeLater(() -> {
                           cambiarPanelHome();
-                          jLabel5.setText("ERROR: MONTO INVÁLIDO");
+                          mostrarPanelMensaje("ERROR: MONTO INVÁLIDO", "/com/firefuel/resources/btBad.png", false);
                       });
                       return;
                   }
@@ -755,7 +863,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                       NovusUtils.printLn("[VentaPredefinirPlaca] Error al convertir galonaje: " + galonajeFinal);
                       SwingUtilities.invokeLater(() -> {
                           cambiarPanelHome();
-                          jLabel5.setText("ERROR: GALONAJE INVÁLIDO");
+                          mostrarPanelMensaje("ERROR: GALONAJE INVÁLIDO", "/com/firefuel/resources/btBad.png", false);
                       });
                       return;
                   }
@@ -776,7 +884,6 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
               Logger.getLogger(VentaPredefinirPlaca.class.getName()).log(Level.SEVERE, null, e);
               SwingUtilities.invokeLater(() -> {
                   cambiarPanelHome();
-                  jLabel5.setText("ERROR AL CONSULTAR AUTORIZACIÓN");
                   mostrarPanelMensaje("ERROR AL CONSULTAR AUTORIZACIÓN", "/com/firefuel/resources/btBad.png", false);
               });
           }
@@ -798,14 +905,14 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
     private void procesarRespuestaConsultaPlaca(JsonObject response, String placa, String odometro, 
                                                 String monto, String galonaje) {
         if (response == null) {
-            jLabel5.setText("ERROR: NO HAY RESPUESTA DEL SERVIDOR");
+            // NO mostrar mensaje de error en el footer, solo en el panel de error
+            // jLabel5.setText("ERROR: NO HAY RESPUESTA DEL SERVIDOR");
             mostrarPanelMensaje("ERROR DE COMUNICACIÓN CON EL SERVIDOR", "/com/firefuel/resources/btBad.png", false);
             return;
         }
         
         if (response.has("mensajeError") && !response.get("mensajeError").isJsonNull()) {
             String mensajeError = response.get("mensajeError").getAsString();
-            jLabel5.setText(mensajeError);
             mostrarPanelMensaje(mensajeError, "/com/firefuel/resources/btBad.png", false);
             return;
         }
@@ -818,7 +925,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                            !response.get("success").isJsonNull() &&
                            response.get("success").getAsBoolean();
         
-        if (!isSuccess) {
+            if (!isSuccess) {
             String mensajeError;
             
             if (httpStatus != 200) {
@@ -831,8 +938,9 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
             
             // Si data es null, solo mostrar el error y retornar
             if (!response.has("data") || response.get("data").isJsonNull()) {
-                NovusUtils.printLn("[VentaPredefinirPlaca] Data es null, mostrando solo mensaje de error");
-                jLabel5.setText(mensajeError);
+                NovusUtils.printLn("[VentaPredefinirPlaca] Data es null, mostrando solo mensaje de error en panel (NO en footer)");
+                // NO mostrar mensaje de error en el footer, solo en el panel de error
+                // jLabel5.setText(mensajeError);
                 
                 Runnable handlerCerrar = () -> {
                     cambiarPanelHome();
@@ -903,12 +1011,10 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                 } else {
                     textoFooter = "<html>SALDO: $ " + df.format(saldoDisponible) + "</html>";
                 }
-                jLabel5.setText(textoFooter);
-                NovusUtils.printLn("[VentaPredefinirPlaca] Saldo establecido en footer: " + textoFooter);
+                establecerSaldoEnFooter(textoFooter);
                 NovusUtils.printLn("[VentaPredefinirPlaca] Saldo numérico: " + saldoDisponible);
             } else {
-                jLabel5.setText(mensajeError);
-                NovusUtils.printLn("[VentaPredefinirPlaca] No se encontró saldo disponible, mostrando solo mensaje de error");
+                NovusUtils.printLn("[VentaPredefinirPlaca] No se encontró saldo disponible, mostrando solo mensaje de error en panel");
             }
             
             final double saldoFinal = saldoDisponible;
@@ -938,8 +1044,8 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                     } else {
                         textoFooter = "<html>SALDO: $ " + df.format(saldoFinal) + "</html>";
                     }
-                    jLabel5.setText(textoFooter);
-                    NovusUtils.printLn("[VentaPredefinirPlaca] Saldo reestablecido en footer después de cerrar panel: " + textoFooter);
+                    establecerSaldoEnFooter(textoFooter);
+                    NovusUtils.printLn("[VentaPredefinirPlaca] Saldo reestablecido en footer después de cerrar panel");
                 }
                 
                 jMonto.requestFocus();
@@ -953,7 +1059,9 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
             JsonArray dataArray = response.get("data").getAsJsonArray();
             
             if (dataArray.size() == 0) {
-                jLabel5.setText("NO SE ENCONTRÓ INFORMACIÓN PARA LA PLACA");
+                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+            jLabel5.setText("NO SE ENCONTRÓ INFORMACIÓN PARA LA PLACA");
                 mostrarPanelMensaje("NO SE ENCONTRÓ INFORMACIÓN PARA LA PLACA", "/com/firefuel/resources/btBad.png", false);
                 return;
             }
@@ -1101,14 +1209,22 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
             
             if (!nombreCliente.isEmpty()) {
                 if (saldoTotal > 0) {
-                    jLabel5.setText("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldoTotal) + "</html>");
+                    establecerSaldoEnFooter("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldoTotal) + "</html>");
                 } else {
+                    jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                     jLabel5.setText("<html>" + nombreCliente + "</html>");
+                    // Limpiar mensajes de validación
+                    jNotificacion.setText("");
+                    jNotificacion.setVisible(false);
                 }
             } else if (saldoTotal > 0) {
-                jLabel5.setText("<html>SALDO: $ " + df.format(saldoTotal) + "</html>");
+                establecerSaldoEnFooter("<html>SALDO: $ " + df.format(saldoTotal) + "</html>");
             } else {
+                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                 jLabel5.setText("AUTORIZACIÓN CONSULTADA EXITOSAMENTE");
+                // Limpiar mensajes de validación
+                jNotificacion.setText("");
+                jNotificacion.setVisible(false);
             }
             
             jPlaca.setEditable(false);
@@ -1127,6 +1243,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
             NovusUtils.printLn("[VentaPredefinirPlaca] Campos bloqueados y botón GUARDAR habilitado");
             
         } else {
+            jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
             jLabel5.setText("NO SE ENCONTRÓ INFORMACIÓN PARA LA PLACA");
             mostrarPanelMensaje("NO SE ENCONTRÓ INFORMACIÓN PARA LA PLACA", "/com/firefuel/resources/btBad.png", false);
         }
@@ -1145,14 +1262,14 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
     private void procesarRespuestaConsultaIButton(JsonObject response, JsonObject identifierRequest, 
                                                    String kilometros, String monto, String galonaje) {
         if (response == null) {
-            jLabel5.setText("ERROR: NO HAY RESPUESTA DEL SERVIDOR");
             mostrarPanelMensaje("ERROR DE COMUNICACIÓN CON EL SERVIDOR", "/com/firefuel/resources/btBad.png", false);
             return;
         }
         
         if (response.has("mensajeError") && !response.get("mensajeError").isJsonNull()) {
             String mensajeError = response.get("mensajeError").getAsString();
-            jLabel5.setText(mensajeError);
+            // NO mostrar mensaje de error en el footer, solo en el panel de error
+            // jLabel5.setText(mensajeError);
             mostrarPanelMensaje(mensajeError, "/com/firefuel/resources/btBad.png", false);
             return;
         }
@@ -1178,8 +1295,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
             
             // Si data es null, solo mostrar el error y retornar
             if (!response.has("data") || response.get("data").isJsonNull()) {
-                NovusUtils.printLn("[VentaPredefinirPlaca] [IBUTTON] Data es null, mostrando solo mensaje de error");
-                jLabel5.setText(mensajeError);
+                NovusUtils.printLn("[VentaPredefinirPlaca] [IBUTTON] Data es null, mostrando solo mensaje de error en panel (NO en footer)");
                 
                 Runnable handlerCerrar = () -> {
                     this.dispose();
@@ -1244,7 +1360,6 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                 }
                 jLabel5.setText(textoFooter);
             } else {
-                jLabel5.setText(mensajeError);
             }
             
             Runnable handlerCerrar = () -> {
@@ -1266,7 +1381,8 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
             JsonArray dataArray = response.get("data").getAsJsonArray();
             
             if (dataArray.size() == 0) {
-                jLabel5.setText("NO SE ENCONTRÓ INFORMACIÓN PARA EL DISPOSITIVO");
+                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+            jLabel5.setText("NO SE ENCONTRÓ INFORMACIÓN PARA EL DISPOSITIVO");
                 mostrarPanelMensaje("NO SE ENCONTRÓ INFORMACIÓN PARA EL DISPOSITIVO", "/com/firefuel/resources/btBad.png", false);
                 return;
             }
@@ -1395,14 +1511,22 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
             
             if (!nombreCliente.isEmpty()) {
                 if (saldoTotal > 0) {
-                    jLabel5.setText("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldoTotal) + "</html>");
+                    establecerSaldoEnFooter("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldoTotal) + "</html>");
                 } else {
+                    jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                     jLabel5.setText("<html>" + nombreCliente + "</html>");
+                    // Limpiar mensajes de validación
+                    jNotificacion.setText("");
+                    jNotificacion.setVisible(false);
                 }
             } else if (saldoTotal > 0) {
-                jLabel5.setText("<html>SALDO: $ " + df.format(saldoTotal) + "</html>");
+                establecerSaldoEnFooter("<html>SALDO: $ " + df.format(saldoTotal) + "</html>");
             } else {
+                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                 jLabel5.setText("AUTORIZACIÓN CONSULTADA EXITOSAMENTE");
+                // Limpiar mensajes de validación
+                jNotificacion.setText("");
+                jNotificacion.setVisible(false);
             }
             
             CardLayout layoutAditionalDataPanel = (CardLayout) this.jPanel2.getLayout();
@@ -1429,6 +1553,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
             NovusUtils.printLn("[VentaPredefinirPlaca] [IBUTTON] Panel cambiado a 'manual' para selección de manguera y entrada de datos");
             
         } else {
+            jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
             jLabel5.setText("NO SE ENCONTRÓ INFORMACIÓN PARA EL DISPOSITIVO");
             mostrarPanelMensaje("NO SE ENCONTRÓ INFORMACIÓN PARA EL DISPOSITIVO", "/com/firefuel/resources/btBad.png", false);
         }
@@ -1485,6 +1610,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
 
         // Verificar si la lista tiene elementos antes de acceder
         if(!carasUsadas.isEmpty() && carasUsadas.get(0) == numeroCara){
+            jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
             jLabel5.setText("La cara " + carasUsadas.get(0) + " Tiene una Pre-Autorozación Activa");
             Usado = true;
             // Detener timer previo si existe
@@ -1578,12 +1704,24 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
 
   private void jPlacaKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jPlacaKeyTyped
       String caracteresAceptados = "[0-9a-zA-Z]";
+      // Ocultar saldo del footer temporalmente si hay validación de caracteres
+      ocultarSaldoPorValidacion();
       NovusUtils.limitarCarateres(evt, jPlaca, 10, jNotificacion, caracteresAceptados);
+      // Restaurar saldo después de 3 segundos (tiempo que dura la notificación)
+      Utils.setTimeout("", () -> {
+          restaurarSaldoDespuesValidacion();
+      }, 3000);
   }//GEN-LAST:event_jPlacaKeyTyped
 
   private void jKilometrajeKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jKilometrajeKeyTyped
       String caracteresAceptados = "[0-9]";
+      // Ocultar saldo del footer temporalmente si hay validación de caracteres
+      ocultarSaldoPorValidacion();
       NovusUtils.limitarCarateres(evt, jKilometraje, 8, jNotificacion, caracteresAceptados);
+      // Restaurar saldo después de 3 segundos (tiempo que dura la notificación)
+      Utils.setTimeout("", () -> {
+          restaurarSaldoDespuesValidacion();
+      }, 3000);
   }//GEN-LAST:event_jKilometrajeKeyTyped
 
   private void jGalonajeFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jGalonajeFocusGained
@@ -1593,10 +1731,66 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
       if (!jMonto.getText().trim().isEmpty()) {
           jMonto.setText("");
       }
+      // Limpiar mensajes de validación del footer cuando el usuario empieza a escribir
+      // Solo si el mensaje es de validación (no saldo)
+      String textoActual = jLabel5.getText();
+      if (textoActual != null && !textoActual.trim().isEmpty() && !textoActual.contains("SALDO")) {
+          jLabel5.setText("");
+          jLabel5.setFont(new java.awt.Font("Arial", 0, 22)); // Restaurar tamaño original
+      }
   }//GEN-LAST:event_jGalonajeFocusGained
 
   private void jGalonajeFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jGalonajeFocusLost
       jGalonaje.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(186, 12, 47), 1, true));
+      
+      // Validación: galonaje no puede comenzar con 0
+      String galonaje = jGalonaje.getText().trim();
+      if (!galonaje.isEmpty()) {
+          // Verificar que no comience con 0 (excepto si es solo "0")
+          if (galonaje.length() > 1 && galonaje.startsWith("0")) {
+              jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+              jLabel5.setText("GALONAJE INVÁLIDO");
+              jGalonaje.setText("");
+              jGalonaje.requestFocus();
+              // Limpiar mensajes de validación
+              jNotificacion.setText("");
+              jNotificacion.setVisible(false);
+              // Limpiar mensaje después de 3 segundos
+              Utils.setTimeout("", () -> {
+                  String textoActual = jLabel5.getText();
+                  if (textoActual != null && textoActual.equals("GALONAJE INVÁLIDO")) {
+                      jLabel5.setText("");
+                      jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                  }
+              }, 3000);
+              return;
+          }
+          
+          // Validación: galonaje debe ser mayor a 0
+          try {
+              double valorGalonaje = Double.parseDouble(galonaje);
+              if (valorGalonaje <= 0) {
+                  jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                  jLabel5.setText("GALONAJE INVÁLIDO");
+                  jGalonaje.setText("");
+                  jGalonaje.requestFocus();
+                  // Limpiar mensajes de validación
+                  jNotificacion.setText("");
+                  jNotificacion.setVisible(false);
+                  // Limpiar mensaje después de 3 segundos
+                  Utils.setTimeout("", () -> {
+                      String textoActual = jLabel5.getText();
+                      if (textoActual != null && textoActual.equals("GALONAJE INVÁLIDO")) {
+                          jLabel5.setText("");
+                          jLabel5.setFont(new java.awt.Font("Arial", 0, 22)); // Restaurar tamaño original
+                      }
+                  }, 3000);
+                  return;
+              }
+          } catch (NumberFormatException e) {
+              // Si no es un número válido, no hacer nada aquí (ya se validará al guardar)
+          }
+      }
   }//GEN-LAST:event_jGalonajeFocusLost
 
   private void jGalonajeKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jGalonajeKeyTyped
@@ -1606,7 +1800,13 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
       if (!jMonto.getText().trim().isEmpty()) {
           jMonto.setText("");
       }
+      // Ocultar saldo del footer temporalmente si hay validación de caracteres
+      ocultarSaldoPorValidacion();
       NovusUtils.limitarCarateres(evt, jGalonaje, 3, jNotificacion, caracteresAceptados);
+      // Restaurar saldo después de 3 segundos (tiempo que dura la notificación)
+      Utils.setTimeout("", () -> {
+          restaurarSaldoDespuesValidacion();
+      }, 3000);
   }//GEN-LAST:event_jGalonajeKeyTyped
 
   private void jMontoFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jMontoFocusGained
@@ -1616,10 +1816,66 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
       if (!jGalonaje.getText().trim().isEmpty()) {
           jGalonaje.setText("");
       }
+      // Limpiar mensajes de validación del footer cuando el usuario empieza a escribir
+      // Solo si el mensaje es de validación (no saldo)
+      String textoActual = jLabel5.getText();
+      if (textoActual != null && !textoActual.trim().isEmpty() && !textoActual.contains("SALDO")) {
+          jLabel5.setText("");
+          jLabel5.setFont(new java.awt.Font("Arial", 0, 22)); // Restaurar tamaño original
+      }
   }//GEN-LAST:event_jMontoFocusGained
 
   private void jMontoFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jMontoFocusLost
       jMonto.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(186, 12, 47), 1, true));
+      
+      // Validación: monto no puede comenzar con 0
+      String monto = jMonto.getText().trim();
+      if (!monto.isEmpty()) {
+          // Verificar que no comience con 0 (excepto si es solo "0")
+          if (monto.length() > 1 && monto.startsWith("0")) {
+              jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+              jLabel5.setText("MONTO INVÁLIDO");
+              jMonto.setText("");
+              jMonto.requestFocus();
+              // Limpiar mensajes de validación
+              jNotificacion.setText("");
+              jNotificacion.setVisible(false);
+              // Limpiar mensaje después de 3 segundos
+              Utils.setTimeout("", () -> {
+                  String textoActual = jLabel5.getText();
+                  if (textoActual != null && textoActual.equals("MONTO INVÁLIDO")) {
+                      jLabel5.setText("");
+                      jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                  }
+              }, 3000);
+              return;
+          }
+          
+          // Validación: monto debe ser mayor a 0
+          try {
+              double valorMonto = Double.parseDouble(monto);
+              if (valorMonto <= 0) {
+                  jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                  jLabel5.setText("MONTO INVÁLIDO");
+                  jMonto.setText("");
+                  jMonto.requestFocus();
+                  // Limpiar mensajes de validación
+                  jNotificacion.setText("");
+                  jNotificacion.setVisible(false);
+                  // Limpiar mensaje después de 3 segundos
+                  Utils.setTimeout("", () -> {
+                      String textoActual = jLabel5.getText();
+                      if (textoActual != null && textoActual.equals("MONTO INVÁLIDO")) {
+                          jLabel5.setText("");
+                          jLabel5.setFont(new java.awt.Font("Arial", 0, 22)); // Restaurar tamaño original
+                      }
+                  }, 3000);
+                  return;
+              }
+          } catch (NumberFormatException e) {
+              // Si no es un número válido, no hacer nada aquí (ya se validará al guardar)
+          }
+      }
   }//GEN-LAST:event_jMontoFocusLost
 
   private void jMontoKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jMontoKeyTyped
@@ -1629,13 +1885,78 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
       if (!jGalonaje.getText().trim().isEmpty()) {
           jGalonaje.setText("");
       }
+      // Ocultar saldo del footer temporalmente si hay validación de caracteres
+      ocultarSaldoPorValidacion();
       NovusUtils.limitarCarateres(evt, jMonto, 10, jNotificacion, caracteresAceptados);
+      // Restaurar saldo después de 3 segundos (tiempo que dura la notificación)
+      Utils.setTimeout("", () -> {
+          restaurarSaldoDespuesValidacion();
+      }, 3000);
   }//GEN-LAST:event_jMontoKeyTyped
 
     private void jLabel14MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel14MouseReleased
         liberarAutorizacion();
         cancelar();
     }//GEN-LAST:event_jLabel14MouseReleased
+
+    /**
+     * Oculta temporalmente el saldo del footer cuando aparece una validación de caracteres
+     */
+    private void ocultarSaldoPorValidacion() {
+        // Si el footer tiene contenido y no está ya oculto por otra validación, guardarlo
+        String textoActual = jLabel5.getText();
+        if (textoActual != null && !textoActual.trim().isEmpty() && !saldoOcultoPorValidacion) {
+            // Verificar si el texto contiene "SALDO" (indica que hay saldo visible)
+            if (textoActual.contains("SALDO")) {
+                textoFooterAnterior = textoActual;
+                saldoOcultoPorValidacion = true;
+                // Limpiar el footer para que solo se vea la notificación de validación
+                jLabel5.setText("");
+                // Mantener tamaño uniforme del footer
+                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                NovusUtils.printLn("[VentaPredefinirPlaca] Saldo ocultado por validación de caracteres");
+            } else {
+                // Si hay un mensaje de validación (no saldo), limpiarlo completamente
+                // Esto evita que los mensajes de validación se queden cuando aparece la validación de caracteres
+                jLabel5.setText("");
+                // Mantener tamaño uniforme del footer
+                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                NovusUtils.printLn("[VentaPredefinirPlaca] Mensaje de validación del footer limpiado por validación de caracteres");
+            }
+        }
+    }
+
+    /**
+     * Restaura el saldo en el footer después de que desaparece la notificación de validación
+     */
+    private void restaurarSaldoDespuesValidacion() {
+        // Si había saldo oculto, restaurarlo
+        if (saldoOcultoPorValidacion && textoFooterAnterior != null && !textoFooterAnterior.trim().isEmpty()) {
+            jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+            jLabel5.setText(textoFooterAnterior);
+            // Restaurar tamaño de fuente original
+            // Limpiar mensajes de validación cuando se restaura el saldo
+            jNotificacion.setText("");
+            jNotificacion.setVisible(false);
+            textoFooterAnterior = "";
+            saldoOcultoPorValidacion = false;
+            NovusUtils.printLn("[VentaPredefinirPlaca] Saldo restaurado después de validación de caracteres - mensajes de validación limpiados");
+        }
+    }
+
+    /**
+     * Establece el saldo en el footer y limpia cualquier mensaje de validación visible
+     */
+    private void establecerSaldoEnFooter(String textoFooter) {
+        jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+        jLabel5.setText(textoFooter);
+        // Restaurar tamaño de fuente original
+        jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+        // Limpiar mensajes de validación cuando se establece el saldo
+        jNotificacion.setText("");
+        jNotificacion.setVisible(false);
+        NovusUtils.printLn("[VentaPredefinirPlaca] Saldo establecido en footer - mensajes de validación limpiados");
+    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup buttonGroup1;
@@ -1753,6 +2074,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                 if (!response.get("marca").isJsonNull()) {
                     String marcar = response.get("marca").getAsString();
                     String capacidad = "CAPACIDAD MAX: " + response.get("capacidad").getAsString() + "LT";
+                    jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                     jLabel5.setText("<html>" + marcar + "<br/>" + capacidad + "</html>");
                     jLabel11.setEnabled(false);
                     jLabel4.setEnabled(true);
@@ -1807,6 +2129,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                 SurtidorDao dao = new SurtidorDao();
 
                 if (jList1.getSelectedIndex() == -1) {
+                    jLabel5.setFont(new java.awt.Font("Arial", 0, 16));
                     jLabel5.setText("SELECCIONE EL \r\nPRODUCTO A VENDER");
                     return; // Salir si no hay selección
                 }
@@ -1814,6 +2137,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                 // Validar que getSelectedValue() no sea null
                 String selectedValue = jList1.getSelectedValue();
                 if (selectedValue == null || selectedValue.isEmpty()) {
+                    jLabel5.setFont(new java.awt.Font("Arial", 0, 16));
                     jLabel5.setText("SELECCIONE EL \r\nPRODUCTO A VENDER");
                     return; // Salir si no hay valor seleccionado
                 }
@@ -1845,12 +2169,118 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                         // Validación para flujo iButton: SI O SI se debe diligenciar monto o galonaje
                         if (!esFlujoPlaca) {
                             if (montoManual.isEmpty() && cantidadManual.isEmpty()) {
+                                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                                 jLabel5.setText("INGRESE MONTO O GALONAJE");
                                 return;
                             }
                             
                             if (!montoManual.isEmpty() && !cantidadManual.isEmpty()) {
+                                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                                 jLabel5.setText("SOLO PUEDE INGRESAR MONTO O GALONAJE, NO AMBOS");
+                                return;
+                            }
+                        }
+                        
+                        // Validación: monto no puede comenzar con 0
+                        if (!montoManual.isEmpty()) {
+                            // Verificar que no comience con 0 (excepto si es solo "0")
+                            if (montoManual.length() > 1 && montoManual.startsWith("0")) {
+                                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                                jLabel5.setText("MONTO INVÁLIDO");
+                                jMonto.setText("");
+                                jMonto.requestFocus();
+                                // Limpiar mensajes de validación
+                                jNotificacion.setText("");
+                                jNotificacion.setVisible(false);
+                                // Limpiar mensaje después de 3 segundos
+                                Utils.setTimeout("", () -> {
+                                    String textoActual = jLabel5.getText();
+                                    if (textoActual != null && textoActual.equals("MONTO INVÁLIDO")) {
+                                        jLabel5.setText("");
+                                        jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                                    }
+                                }, 3000);
+                                return;
+                            }
+                            
+                            // Validación: monto debe ser mayor a 0
+                            try {
+                                double valorMonto = Double.parseDouble(montoManual);
+                                if (valorMonto <= 0) {
+                                    jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                                    jLabel5.setText("MONTO INVÁLIDO");
+                                    jMonto.setText("");
+                                    jMonto.requestFocus();
+                                    // Limpiar mensajes de validación
+                                    jNotificacion.setText("");
+                                    jNotificacion.setVisible(false);
+                                    // Limpiar mensaje después de 3 segundos
+                                    Utils.setTimeout("", () -> {
+                                        String textoActual = jLabel5.getText();
+                                        if (textoActual != null && textoActual.equals("MONTO INVÁLIDO")) {
+                                            jLabel5.setText("");
+                                            jLabel5.setFont(new java.awt.Font("Arial", 0, 22)); // Mantener tamaño uniforme del footer
+                                        }
+                                    }, 3000);
+                                    return;
+                                }
+                            } catch (NumberFormatException e) {
+                                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                                jLabel5.setText("ERROR: MONTO INVÁLIDO");
+                                jMonto.setText("");
+                                jMonto.requestFocus();
+                                return;
+                            }
+                        }
+                        
+                        // Validación: galonaje no puede comenzar con 0
+                        if (!cantidadManual.isEmpty()) {
+                            // Verificar que no comience con 0 (excepto si es solo "0")
+                            if (cantidadManual.length() > 1 && cantidadManual.startsWith("0")) {
+                                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                                jLabel5.setText("GALONAJE INVÁLIDO");
+                                jGalonaje.setText("");
+                                jGalonaje.requestFocus();
+                                // Limpiar mensajes de validación
+                                jNotificacion.setText("");
+                                jNotificacion.setVisible(false);
+                                // Limpiar mensaje después de 3 segundos
+                                Utils.setTimeout("", () -> {
+                                    String textoActual = jLabel5.getText();
+                                    if (textoActual != null && textoActual.equals("GALONAJE INVÁLIDOO")) {
+                                        jLabel5.setText("");
+                                        jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                                    }
+                                }, 3000);
+                                return;
+                            }
+                            
+                            // Validación: galonaje debe ser mayor a 0
+                            try {
+                                double valorGalonaje = Double.parseDouble(cantidadManual);
+                                if (valorGalonaje <= 0) {
+                                    jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                                    jLabel5.setText("GALONAJE INVÁLIDO");
+                                    jGalonaje.setText("");
+                                    jGalonaje.requestFocus();
+                                    // Limpiar mensajes de validación
+                                    jNotificacion.setText("");
+                                    jNotificacion.setVisible(false);
+                                    // Limpiar mensaje después de 3 segundos
+                                    Utils.setTimeout("", () -> {
+                                        String textoActual = jLabel5.getText();
+                                        if (textoActual != null && textoActual.equals("GALONAJE INVÁLIDO")) {
+                                            jLabel5.setText("");
+                                            jLabel5.setFont(new java.awt.Font("Arial", 0, 22)); // Mantener tamaño uniforme del footer
+                                        }
+                                    }, 3000);
+                                    return;
+                                }
+                            } catch (NumberFormatException e) {
+                                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
+                                jLabel5.setText("ERROR: GALONAJE INVÁLIDO");
+                                jGalonaje.setText("");
+                                jGalonaje.requestFocus();
                                 return;
                             }
                         }
@@ -1874,9 +2304,12 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                                     String nombreCliente = recepcionData.has("nombreCliente") && !recepcionData.get("nombreCliente").isJsonNull() 
                                         ? recepcionData.get("nombreCliente").getAsString() : "";
                                     if (!nombreCliente.isEmpty()) {
-                                        jLabel5.setText("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldo) + "</html>");
+                                        establecerSaldoEnFooter("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldo) + "</html>");
                                     } else {
                                         jLabel5.setText("MONTO INGRESADO EXCEDE EL SALDO DISPONIBLE");
+                                        // Limpiar mensajes de validación
+                                        jNotificacion.setText("");
+                                        jNotificacion.setVisible(false);
                                     }
                                     // Crear Runnable personalizado para limpiar campos y permitir ingresar nuevamente
                                     Runnable handlerCerrar = () -> {
@@ -1923,8 +2356,10 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                                         String nombreCliente = recepcionData.has("nombreCliente") && !recepcionData.get("nombreCliente").isJsonNull() 
                                             ? recepcionData.get("nombreCliente").getAsString() : "";
                                         if (!nombreCliente.isEmpty()) {
+                                            jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                                             jLabel5.setText("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldo) + "</html>");
                                         } else {
+                                            jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                                             jLabel5.setText("MONTO INGRESADO EXCEDE EL SALDO DISPONIBLE");
                                         }
                                         // Crear Runnable personalizado para limpiar campos y permitir ingresar nuevamente
@@ -1990,9 +2425,13 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                                                     ? recepcionData.get("nombreCliente").getAsString() : "";
                                                 
                                                 if (!nombreCliente.isEmpty()) {
-                                                    jLabel5.setText("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldo) + "</html>");
+                                                    establecerSaldoEnFooter("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldo) + "</html>");
                                                 } else {
-                                                    jLabel5.setText(mensajeError);
+                                                    // NO mostrar mensaje de error en el footer, solo en el panel de error
+                                                    // jLabel5.setText(mensajeError);
+                                                    // Limpiar mensajes de validación
+                                                    jNotificacion.setText("");
+                                                    jNotificacion.setVisible(false);
                                                 }
                                                 
                                                 Runnable handlerCerrar = () -> {
@@ -2028,12 +2467,14 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                                     NovusUtils.printLn("[VentaPredefinirPlaca] Monto " + monto + " convertido a " + cantidadParam + " galones (precio: " + precioProducto + ")");
                                 } else {
                                     NovusUtils.printLn("[VentaPredefinirPlaca] ERROR: Precio del producto es 0, no se puede convertir monto a galones");
-                                    jLabel5.setText("ERROR: PRECIO DEL PRODUCTO NO VÁLIDO");
+                                    mostrarPanelMensaje("ERROR: PRECIO DEL PRODUCTO NO VÁLIDO", "/com/firefuel/resources/btBad.png", false);
                                     return;
                                 }
                             } catch (NumberFormatException e) {
                                 NovusUtils.printLn("[VentaPredefinirPlaca] Error al convertir monto: " + montoManual + " - " + e.getMessage());
-                                jLabel5.setText("ERROR AL CONVERTIR MONTO");
+                                // NO mostrar mensaje de error en el footer, solo en el panel de error
+                                // jLabel5.setText("ERROR AL CONVERTIR MONTO");
+                                mostrarPanelMensaje("ERROR AL CONVERTIR MONTO", "/com/firefuel/resources/btBad.png", false);
                                 return;
                             }
                         } else if (!cantidadManual.isEmpty()) {
@@ -2086,15 +2527,19 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                                         ? recepcionData.get("nombreCliente").getAsString() : "";
                                     
                                     if (!nombreCliente.isEmpty()) {
-                                        jLabel5.setText("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldo) + "</html>");
+                                        establecerSaldoEnFooter("<html>" + nombreCliente + "<br/>SALDO: $ " + df.format(saldo) + "</html>");
                                     } else {
-                                        jLabel5.setText(mensajeError);
+                                        // NO mostrar mensaje de error en el footer, solo en el panel de error
+                                        // jLabel5.setText(mensajeError);
+                                        // Limpiar mensajes de validación
+                                        jNotificacion.setText("");
+                                        jNotificacion.setVisible(false);
                                     }
                                 } catch (Exception e) {
-                                    jLabel5.setText(mensajeError);
                                 }
                             } else {
-                                jLabel5.setText(mensajeError);
+                                // NO mostrar mensaje de error en el footer, solo en el panel de error
+                                // jLabel5.setText(mensajeError);
                             }
                             
                             // Crear handler para limpiar campos y permitir ingresar nuevamente
@@ -2113,8 +2558,10 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                 }
             } else {
                 if (placa.isEmpty()) {
+                    jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                     jLabel5.setText("Verifique la placa");
                 } else {
+                    jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                     jLabel5.setText("Requiere kilometraje");
                 }
             }
@@ -2210,7 +2657,6 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                 Logger.getLogger(VentaPredefinirPlaca.class.getName()).log(Level.SEVERE, null, e);
                 SwingUtilities.invokeLater(() -> {
                     cambiarPanelHome();
-                    jLabel5.setText("ERROR AL CONSULTAR AUTORIZACIÓN");
                     mostrarPanelMensaje("ERROR AL CONSULTAR AUTORIZACIÓN", "/com/firefuel/resources/btBad.png", false);
                 });
             }
@@ -2290,6 +2736,7 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                 recepcionData.addProperty("medioAutorizacion", "ibutton");
                 recepcionData.addProperty("serialDispositivo", identifierRequest.get("serial").getAsString());
                 solicitarDatosSurtidor(identifierRequest.get("cara").getAsInt());
+                jLabel5.setFont(new java.awt.Font("Arial", 0, 22));
                 jLabel5.setText("<html>" + recepcionData.get("cliente").getAsString() + "</html>");
             } else {
                 NovusUtils.beep();
