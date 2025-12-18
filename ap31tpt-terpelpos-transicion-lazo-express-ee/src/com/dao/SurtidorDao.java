@@ -256,42 +256,22 @@ public class SurtidorDao {
                 NovusUtils.printLn("Datos ::::" + ventaMaxima);
                 NovusUtils.printLn("Surtidor:::" + manguera.toString());
 
-                // NOTA: El montoManual ya no se usa directamente aquí, se convierte a cantidad en VentaPredefinirPlaca
-                // Este bloque se mantiene por compatibilidad pero no debería ejecutarse en flujos de clientes propios
+                // Si se ingresa monto, guardarlo directamente sin convertir a galonaje
                 if (montoManual != null && !montoManual.trim().isEmpty()) {
                     try {
-                        // Convertir monto a cantidad (galones) para guardar con monto=0 y cantidad=conversión
                         double monto = Double.parseDouble(montoManual.trim());
-                        double precioProducto = manguera.getProductoPrecio();
                         
-                        if (precioProducto > 0) {
-                            // Validar que el monto no exceda el saldo - SI EXCEDE, LANZAR ERROR
-                            if ((int) monto > saldo) {
-                                String mensajeError = "Monto ingresado (" + (int) monto + ") excede el saldo disponible (" + saldo + ")";
-                                NovusUtils.printLn("[crearAutorizacionPorPlaca] ERROR: " + mensajeError);
-                                throw new DAOException("MONTO_EXCEDE_SALDO:" + mensajeError);
-                            }
-                            
-                            // Calcular cantidad equivalente (mantener decimales)
-                            double cantidad = monto / precioProducto;
-                            // Redondear a 4 decimales
-                            cantidad = Math.round(cantidad * 10000.0) / 10000.0;
-                            
-                            // Guardar con monto=0 y cantidad=conversión (con 4 decimales máximo)
-                            ps.setInt(9, 0); // monto_maximo (índice ajustado: antes 8, ahora 9)
-                            ps.setDouble(10, cantidad); // cantidad_maxima (índice ajustado: antes 9, ahora 10)
-                            NovusUtils.printLn("[crearAutorizacionPorPlaca] Monto " + monto + " convertido a " + cantidad + " galones. Guardando MONTO: 0, CANTIDAD: " + cantidad);
-                        } else {
-                            NovusUtils.printLn("[crearAutorizacionPorPlaca] ERROR: Precio del producto es 0, usando lógica por defecto");
-                            if (saldo >= ventaMaxima) {
-                                int cantidadMaxima = saldo / (int) manguera.getProductoPrecio();
-                                ps.setInt(9, 0);
-                                ps.setInt(10, cantidadMaxima);
-                            } else {
-                                ps.setInt(9, saldo);
-                                ps.setInt(10, 0);
-                            }
+                        // Validar que el monto no exceda el saldo - SI EXCEDE, LANZAR ERROR
+                        if ((int) monto > saldo) {
+                            String mensajeError = "Monto ingresado (" + (int) monto + ") excede el saldo disponible (" + saldo + ")";
+                            NovusUtils.printLn("[crearAutorizacionPorPlaca] ERROR: " + mensajeError);
+                            throw new DAOException("MONTO_EXCEDE_SALDO:" + mensajeError);
                         }
+                        
+                        // Guardar el monto directamente, cantidad = 0
+                        ps.setInt(9, (int) monto); // monto_maximo
+                        ps.setDouble(10, 0); // cantidad_maxima = 0
+                        NovusUtils.printLn("[crearAutorizacionPorPlaca] Guardando MONTO: " + monto + ", CANTIDAD: 0");
                     } catch (NumberFormatException e) {
                         // Si hay error en la conversión, usar lógica por defecto
                         NovusUtils.printLn("[crearAutorizacionPorPlaca] Error al convertir monto: " + montoManual);

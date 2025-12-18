@@ -2458,17 +2458,16 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                                         }
                                     }
                                     
-                                    double cantidad = monto / precioProducto;
-                                    // Redondear a 4 decimales
-                                    cantidad = Math.round(cantidad * 10000.0) / 10000.0;
-                                    cantidadParam = String.valueOf(cantidad);
-                                    montoParam = null; // No se guarda monto, solo cantidad
+                                    // Guardar el monto directamente, sin convertir a galonaje
+                                    montoParam = montoManual;
+                                    cantidadParam = null; // cantidad = 0
                                     
-                                    NovusUtils.printLn("[VentaPredefinirPlaca] Monto " + monto + " convertido a " + cantidadParam + " galones (precio: " + precioProducto + ")");
+                                    NovusUtils.printLn("[VentaPredefinirPlaca] Guardando MONTO: " + monto + ", CANTIDAD: 0");
                                 } else {
-                                    NovusUtils.printLn("[VentaPredefinirPlaca] ERROR: Precio del producto es 0, no se puede convertir monto a galones");
-                                    mostrarPanelMensaje("ERROR: PRECIO DEL PRODUCTO NO VÁLIDO", "/com/firefuel/resources/btBad.png", false);
-                                    return;
+                                    // Si el precio es 0, aún así guardar el monto directamente
+                                    montoParam = montoManual;
+                                    cantidadParam = null;
+                                    NovusUtils.printLn("[VentaPredefinirPlaca] Guardando MONTO: " + monto + ", CANTIDAD: 0 (precio producto = 0)");
                                 }
                             } catch (NumberFormatException e) {
                                 NovusUtils.printLn("[VentaPredefinirPlaca] Error al convertir monto: " + montoManual + " - " + e.getMessage());
