@@ -2485,22 +2485,16 @@ public class VentaPredefinirPlaca extends javax.swing.JDialog {
                             montoParam = null;
                             cantidadParam = null;
                         }
+                        SetupDao setupDao = new SetupDao();
+                        if (setupDao.placaTieneTransaccionActiva(placa)) {
+                            mostrarPanelMensaje("NO SE PUEDE CREAR LA AUTORIZACIÓN\nLA PLACA " + placa.toUpperCase() + " TIENE UNA VENTA EN CURSO", "/com/firefuel/resources/btBad.png", false);
+                            return;
+                        }
 
                         // ✅ REMOVIDO: HABILITAR_CONSULTA_SICOM ya no se usa en flujo de clientes propios
                         dao.crearAutorizacionPorPlaca(Main.persona, surtidor, placa, odometro, recepcionData, 
                                                      false, montoParam, cantidadParam);
-                        // boolean facturaRegistrada = (boolean) result.get("facturaRegistrada");
-                        // boolean resultAutorizacion = (boolean) result.get("result");
-                        // String placaVehiculo = (String) result.get("placaVehiculo");
-                        // NovusUtils.printLn("[VentaPredefinirPlaca] facturaRegistrada: " + facturaRegistrada);
-                        // NovusUtils.printLn("[VentaPredefinirPlaca] resultAutorizacion: " + resultAutorizacion);
-                        // NovusUtils.printLn("[VentaPredefinirPlaca] placaVehiculo: " + placaVehiculo);
-                        // NovusUtils.printLn("[VentaPredefinirPlaca] Producto Manguera: " + productoManguera);
-                        // if(facturaRegistrada && productoManguera.equals("GLP")){
-                        //     mostrarPanelMensaje("YA EXISTE UNA AUTORIZACION PARA LA PLACA : " + placaVehiculo + " EN SICOM", "/com/firefuel/resources/btBad.png", false);
-                        // }else{
-                        //     mostrarPanelMensajeFinal(mensajeAutorizacion(surtidor.isEstaDentroDelRango(), hayClienteComunidades(recepcionData)) + surtidor.getCara(), "/com/firefuel/resources/btOk.png", true);
-                        // }
+                        
                         
                        enVenta_1 = true;
                         mostrarPanelMensajeFinal(mensajeAutorizacion(surtidor.isEstaDentroDelRango(), hayClienteComunidades(recepcionData)) + surtidor.getCara(), "/com/firefuel/resources/btOk.png", true);

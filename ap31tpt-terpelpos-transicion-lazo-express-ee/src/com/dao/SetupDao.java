@@ -641,6 +641,30 @@ public class SetupDao {
         return carasUsadas;
     }
 
+    public boolean placaTieneTransaccionActiva(String placa) {
+        DatabaseConnectionManager.DatabaseResources resources = null;
+        
+        try {
+            String sql = "SELECT COUNT(*) as count FROM transacciones WHERE placa_vehiculo = ? AND usado IS NULL";
+            resources = DatabaseConnectionManager.createDatabaseResources("lazoexpresscore", sql);
+            PreparedStatement ps = resources.getPreparedStatement();
+            ps.setString(1, placa.toUpperCase().trim());
+            DatabaseConnectionManager.executeQuery(resources);
+            
+            if (resources.getResultSet().next()) {
+                int count = resources.getResultSet().getInt("count");
+                return count > 0;
+            }
+        } catch (SQLException s) {
+            NovusUtils.printLn("[SetupDao] Error al verificar placa activa: " + s.getMessage());
+        } catch (Exception s) {
+            NovusUtils.printLn("[SetupDao] Error al verificar placa activa: " + s.getMessage());
+        } finally {
+            DatabaseConnectionManager.closeDatabaseResources(resources);
+        }
+        return false;
+    }
+
     public TreeMap<Integer, Surtidor> getManguerasProductosAutorizacion() {
         TreeMap<Integer, Surtidor> surtidor = new TreeMap<>();
         DatabaseConnectionManager.DatabaseResources resources = null;
